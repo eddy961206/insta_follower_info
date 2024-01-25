@@ -11,9 +11,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (NoSuchElementException, TimeoutException,
                                         ElementClickInterceptedException, UnexpectedAlertPresentException,
                                         NoAlertPresentException)
-from program_actions import find_element_with_retry, scroll_to_top
+from program_actions import find_element_with_retry, find_elements_with_retry, scroll_to_top
 from bs4 import BeautifulSoup
-
 
 def login_to_insta(driver, username, password):
     driver.get("https://www.instagram.com/accounts/login/")
@@ -74,14 +73,15 @@ def get_followers(driver, account):
     last_height = driver.execute_script("return arguments[0].scrollHeight", follower_list_modal)
 
     while True:
+        # 팔로워 목록에서 팔로워 닉네임 추출 -> 몇만명이면 너무 오래걸림.. 최대 팔로워수 제한 받으려면 매번 실행, 제한 안받으려면 다 스크롤 하고 난 후 한번만 실행.
+        followers = get_span_texts_with_dir_auto(driver)
+
         # 스크롤
         driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", follower_list_modal)
         time.sleep(random.uniform(2, 3))  # 랜덤한 시간으로 대기
 
-        # 새로 로드된 팔로워 수집
-        # new_followers = [img.get_attribute('alt').split('님의 프로필 사진')[0] for img in follower_list_modal.find_elements_by_xpath(".//img[contains(@alt,'님의 프로필 사진')]")]
-        new_followers = [img.get_attribute('alt').split('님의 프로필 사진')[0] for img in driver.find_elements(By.XPATH, ".//img[contains(@alt,'님의 프로필 사진')]") if img.is_displayed() and follower_list_modal == img.find_element(By.XPATH, "./ancestor-or-self::div[@style='height: auto; overflow: hidden auto;']")]
-
+        print(f'팔로워 수 : {len(followers)}')
+        print(followers)
 
         # 스크롤이 더 이상 진행되지 않으면 종료
         new_height = driver.execute_script("return arguments[0].scrollHeight", follower_list_modal)
@@ -89,14 +89,29 @@ def get_followers(driver, account):
             break
         last_height = new_height
 
-        followers.extend(new_followers)
-
-        print(followers)
-
     # 중복 제거
     followers = list(set(followers))
 
     return followers
+
+
+def get_span_texts_with_dir_auto(driver):
+    """자바스크립트를 실행하여 'dir="auto"' 속성을 가진 span 중 부모의 부모의 부모가 a 태그인 요소들의 텍스트를 리스트로 반환"""
+    get_follower_names_by_js = """
+    var spans = document.querySelectorAll('span[dir="auto"]');
+    var followers_names = [];
+    spans.forEach(function(span) {
+        if (span.parentElement && 
+            span.parentElement.parentElement && 
+            span.parentElement.parentElement.parentElement && 
+            span.parentElement.parentElement.parentElement.tagName === 'A') {
+            followers_names.push(span.textContent.trim());
+        }
+    });
+    return followers_names;
+    """
+    followers_names = driver.execute_script(get_follower_names_by_js)
+    return followers_names
 
 
 
