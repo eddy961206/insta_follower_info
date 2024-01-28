@@ -34,39 +34,50 @@ def initialize_driver():
     return driver
 
 
-def initialize_driver_test():
-    options = Options()
-    options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
-    driver = webdriver.Chrome(options=options)
-    return driver
-
-
 def save_to_excel(data):
+    folder_name = '팔로워 정보'
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
     # 엑셀 파일 생성
     wb = openpyxl.Workbook()
     wb.remove(wb.active)  # 기본 시트 삭제
 
-    # 각 계정별로 데이터 시트 생성
-    for account, followers in data.items():
-        ws = wb.create_sheet(title=account)
+    if isinstance(data, dict):  # 딕셔너리인 경우
+        # 각 계정별로 데이터 시트 생성
+        for account, followers in data.items():
+            ws = wb.create_sheet(title=account)
+            # 헤더 추가
+            headers = [f'{account} 계정', '팔로워 ID', '팔로워 수', '팔로잉 수', '계정 상태', '팔로워 링크']
+            ws.append(headers)
+
+            # 팔로워 데이터와 계정 이름, 순번 추가
+            for index, follower in enumerate(followers, start=1):
+                row_data = [index] + [follower.get(header, '') for header in headers[1:]]
+                ws.append(row_data)
+
+            # 컬럼 너비 조정
+            for col in range(1, len(headers) + 1):
+                ws.column_dimensions[get_column_letter(col)].width = 20
+
+    elif isinstance(data, list):  # 리스트인 경우
+        ws = wb.create_sheet(title='중단된 계정')
         # 헤더 추가
-        headers = [f'{account} 계정', '팔로워 ID', '팔로워 수', '팔로잉 수', '계정 상태', '팔로워 링크']
+        headers = ['팔로워 ID', '팔로워 수', '팔로잉 수', '계정 상태', '팔로워 링크']
         ws.append(headers)
 
-        # 팔로워 데이터와 계정 이름, 순번 추가
-        for index, follower in enumerate(followers, start=1):
-            row_data = [index] + [follower.get(header, '') for header in headers[1:]]
-            ws.append(row_data)
+        for index, follower_info in enumerate(data, start=1):
+            row = [follower_info.get(header, '') for header in headers]
+            ws.append(row)
 
-        # 컬럼 너비 조정
-        for col in range(1, len(headers) + 1):
-            ws.column_dimensions[get_column_letter(col)].width = 20
+    else:
+        print("잘못된 데이터 형식입니다.")
 
     # 파일 이름 형식: 'YYMMDD_HHMM_인스타결과.xlsx'
     current_time = datetime.now().strftime('%y%m%d_%H%M')
     file_name = f"{current_time}_인스타결과.xlsx"
     wb.save(file_name)
-    print(f"\n엑셀 파일 '{file_name}'에 데이터 저장 완료")
+    print(f"\n추출된 정보가 {folder_name} 폴더에 '{file_name}' 으로 저장 완료되었습니다.")
 
 
 
@@ -79,7 +90,7 @@ def find_element_with_retry(driver, by, value, delay=10):
         return element
     except TimeoutException:
         # return None
-        raise NoSuchElementException(f"\n요소가 {delay}초 동안 나타나지 않았습니다: {value}")
+        raise NoSuchElementException(f"\n'{value}' 요소가 {delay}초 동안 나타나지 않았습니다:")
     
 
 # 에러 발생 시 스크린샷을 저장하는 함수
@@ -91,7 +102,7 @@ def capture_screenshot(driver, error_message):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')  # 현재 시간으로 타임스탬프 생성
     screenshot_file = os.path.join(screenshots_dir, f"error_{timestamp}.png")
     driver.save_screenshot(screenshot_file)  # 스크린샷 저장
-    print(f"\n에러 스크린샷이 '{screenshot_file}' 파일에 저장되었습니다.")
+    print(f"\n에러 스크린샷이 {screenshots_dir} 폴더에 저장되었습니다.")
     print(f"에러 메시지: {error_message}")
 
 

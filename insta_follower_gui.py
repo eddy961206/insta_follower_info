@@ -13,7 +13,7 @@ global results_tab
 
 def main():
 
-    mutex_name = "Global\\MyApp12345Mutex"  # 고유한 이름 지정
+    mutex_name = "Global\\InstaFollowerFetchMutex"  # 고유한 이름 지정
     single_instance_mutex = SINGLE_INSTANCE_MUTEX(mutex_name)
 
     # 프로그램이 하나만 작동 되도록 확인
@@ -23,7 +23,10 @@ def main():
 
     try:
         root = tk.Tk()
-        root.title("린치핀 인스타 팔로워 추출 프로그램 v1")
+        root.title("린치핀 인스타 팔로워 추출 프로그램 v1.0")
+        root.iconbitmap('./_internal/instagram.ico')    # EXE 묶을 때 용도!! 
+        # root.iconbitmap('instagram.ico')  # 개발 용도
+
         root.geometry("495x400")
 
         tab_control = ttk.Notebook(root)

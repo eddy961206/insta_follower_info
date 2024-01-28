@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+dist/
+/build/*
+!/build/assets/
+/실행결과
+/에러 스크린샷
+/인스타_설정정보.ini

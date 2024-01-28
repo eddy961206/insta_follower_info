@@ -6,7 +6,6 @@ import tkinter as tk
 from tkinter import Frame, Canvas, Entry, Listbox, Scrollbar, Text, Button, PhotoImage, BooleanVar, Checkbutton, ttk
 from pathlib import Path
 from ConfigManager import ConfigManager
-import service
 import main
 
 class SettingsTab(Frame):
@@ -22,8 +21,8 @@ class SettingsTab(Frame):
         self.results_tab = results_tab
         self.is_running = False
         self.create_widgets()
-        self.config_manager = ConfigManager("설정정보.ini")
-        if os.path.exists("설정정보.ini"):
+        self.config_manager = ConfigManager("인스타_설정정보.ini")
+        if os.path.exists("인스타_설정정보.ini"):
             self.load_settings()
         self.add_placeholders()
         self.update_scrollbars()  # 초기 스크롤바 상태 업데이트
@@ -189,8 +188,7 @@ class SettingsTab(Frame):
         main_logic_thread.start()
 
     def validate_otp(self, user_code):
-        secret_key = 'DIOFEPCKNMKOLEJFOSJOEHIUZHEBNKAL'
-        # secret_key = 'FORIENBISNXGUEOEPDDOAHIRKWLFIDJG'
+        secret_key = 'FORIENBISNXGUEOEPDDOAHIRKWLFIDJG'
 
         user_code = user_code.replace(" ", "")  # 띄어쓰기 및 공백 제거
         if otp.valid_totp(token=user_code, secret=secret_key):
@@ -258,6 +256,11 @@ class SettingsTab(Frame):
 
         # '계정당 추출할 최대 팔로워 수' 검사
         max_follower_cnt = self.max_follower_cnt_entry.get()
+        if not max_follower_cnt or max_follower_cnt == self.PLACEHOLDER_MAX_COUNT:
+            messagebox.showwarning("안내", "'계정당 추출할 최대 팔로워 수'를 입력해주세요.")
+            self.max_follower_cnt_entry.focus_set()
+            return False
+        
         try:
             max_follower_cnt = int(max_follower_cnt)
         except ValueError:
@@ -290,8 +293,8 @@ class SettingsTab(Frame):
 
     def add_account_to_listbox(self):
         target_acc = self.target_acc_entry.get()
-        if target_acc:
-            self.account_info_listbox.insert(tk.END, target_acc)
+        if target_acc and target_acc.strip() and target_acc != self.PLACEHOLDER_ACCOUNT:
+            self.account_info_listbox.insert(tk.END, target_acc.strip())
             self.target_acc_entry.delete(0, 'end')
             self.update_scrollbars()
 
