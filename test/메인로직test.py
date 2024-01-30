@@ -1,7 +1,7 @@
 import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from program_actions import initialize_driver
-from insta_utils import get_followers_names_from_acc, login_to_insta
+from insta_utils import get_follower_info, login_to_insta
 from main import main_logic
 
 

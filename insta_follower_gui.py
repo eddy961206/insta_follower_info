@@ -23,7 +23,7 @@ def main():
 
     try:
         root = tk.Tk()
-        root.title("린치핀 인스타 팔로워 추출 프로그램 v1.0")
+        root.title("린치핀 인스타 팔로워 추출 프로그램 v1.1")
         root.iconbitmap('./_internal/instagram.ico')    # EXE 묶을 때 용도!! 
         # root.iconbitmap('instagram.ico')  # 개발 용도
 

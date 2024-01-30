@@ -76,7 +76,8 @@ def save_to_excel(data):
     # 파일 이름 형식: 'YYMMDD_HHMM_인스타결과.xlsx'
     current_time = datetime.now().strftime('%y%m%d_%H%M')
     file_name = f"{current_time}_인스타결과.xlsx"
-    wb.save(file_name)
+    file_path = os.path.join(folder_name, file_name)
+    wb.save(file_path)
     print(f"\n추출된 정보가 {folder_name} 폴더에 '{file_name}' 으로 저장 완료되었습니다.")
 
 

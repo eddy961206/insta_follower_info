@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-my_program_name = "린치핀 인스타 팔로워 추출 프로그램 v1.0"
+my_program_name = "린치핀 인스타 팔로워 추출 프로그램 v1.1"
 
 
 a = Analysis(
