@@ -72,7 +72,7 @@ def get_follower_info(driver, account, max_follower_count):
         follower_list_modal = parent_element
 
         # 팔로워 모달에서 각 팔로워의 정보 가져오기
-        followers_info = scroll_and_fetch_follower_info(driver, follower_list_modal, max_follower_count)
+        followers_info = scroll_and_fetch_follower_info(driver, follower_list_modal, max_follower_count, account)
 
         # print(f'\n{account} 계정에서 가져온 팔로워 수 : {len(followers_info)}명 \n(계정 페이지에 적혀있는 팔로워 수와 다를 수 있습니다.)')
         return followers_info
@@ -106,20 +106,18 @@ def open_followers_modal(driver, account):
         return False
 
 
-def scroll_and_fetch_follower_info(driver, follower_list_modal, max_follower_count):
+def scroll_and_fetch_follower_info(driver, follower_list_modal, max_follower_count, account):
     followers_info = []
     processed_followers = set()  # 처리된 팔로워를 추적하기 위한 세트
     last_height = driver.execute_script("return arguments[0].scrollHeight", follower_list_modal)
     scroll_count = 0        
+    random_browsing_interval = random.randint(30, 40)  # 100~150명의 팔로워를 처리한 후 랜덤 브라우징 실행
+    print(f'팔로워 데이터 추출 중 랜덤 행동을 시작할 순번 : {random_browsing_interval}\n')
+    account_status_counter = 1  # 초기값 설정
 
     while len(followers_info) < max_follower_count:
         random_scroll_amount = random.randint(300, 1000)  # 랜덤한 스크롤 양
         driver.execute_script(f"arguments[0].scrollTop += {random_scroll_amount}", follower_list_modal)
-
-        # WebDriverWait(driver, 10).until(
-        #     lambda d: d.execute_script("return arguments[0].scrollHeight", follower_list_modal) > last_height
-        # )
-
         time.sleep(random.uniform(2, 3))
 
         new_height = driver.execute_script("return arguments[0].scrollHeight", follower_list_modal)
@@ -129,7 +127,7 @@ def scroll_and_fetch_follower_info(driver, follower_list_modal, max_follower_cou
         last_height = new_height
 
         # 15~20번 스크롤마다 10초~1분 랜덤으로 긴 휴식
-        if scroll_count >= random.randint(15, 20):
+        if scroll_count >= random.randint(2, 3):
             long_sleep_time = random.uniform(10, 60)
             print(f"스크롤링 중 봇 탐지 방지를 위해 {long_sleep_time}초 동안 긴 휴식을 취합니다...(10~60초 랜덤)")
             time.sleep(long_sleep_time)
@@ -137,12 +135,36 @@ def scroll_and_fetch_follower_info(driver, follower_list_modal, max_follower_cou
             scroll_count = 0
 
         # 팔로워 데이터 추출
-        # 54 짜리 캔버스 하나하나가 팔로워 1명을 의미
-        canvas_elements = driver.find_elements(By.CSS_SELECTOR, 'canvas[height="54"][width="54"]')
+        # 모든 canvas 요소 선택
+        canvas_elements = driver.find_elements(By.TAG_NAME, 'canvas')
+        # 높이와 너비가 50대인 canvas 요소만 필터링
+        filtered_canvas_elements = [
+            canvas for canvas in canvas_elements
+            if 50 <= int(canvas.get_attribute('height')) <= 59 and 50 <= int(canvas.get_attribute('width')) <= 59
+        ]
+
+        # canvas_elements = driver.find_elements(By.CSS_SELECTOR, 'canvas[height="54"][width="54"]')
         # print(f'로드되어있는 팔로워 수(canvas) : {len(canvas_elements)}')
 
         # 각 팔로워 반복
-        for canvas in canvas_elements:
+        for canvas in filtered_canvas_elements:
+            # 랜덤한 행동 실행 후 팔로워 정보 수집 재개
+            if len(followers_info) >= random_browsing_interval:
+                random_browsing_actions(driver)  # 랜덤 브라우징 활동 실행
+                # 새롭게 로드된 팔로워 정보를 가져올 때까지 스크롤
+                while True:
+                    # 스크롤 다운
+                    driver.execute_script("arguments[0].scrollTop += 1000", follower_list_modal)
+                    time.sleep(random.uniform(2, 3))
+
+                    # 새롭게 로드된 팔로워 정보가 있으면 중단
+                    new_followers_loaded = check_new_followers_loaded(driver, follower_list_modal, processed_followers)
+                    if new_followers_loaded:
+                        break
+
+                random_browsing_interval += random.randint(30, 40)  # 다음 랜덤 브라우징 실행까지의 인터벌 갱신
+                print(f'\n팔로워 데이터 추출 중 랜덤 행동을 시작할 순번 : {random_browsing_interval}\n')
+
             if len(followers_info) >= max_follower_count:
                 break
             
@@ -155,6 +177,9 @@ def scroll_and_fetch_follower_info(driver, follower_list_modal, max_follower_cou
                     follower_data = process_follower_element(driver, images[0])
                     followers_info.append(follower_data)
                     processed_followers.add(follower_name)  # 처리됨으로 표시  
+                    
+                    print(f"{account} - {account_status_counter} : {follower_name}, {follower_data['팔로워 수']}, {follower_data['팔로잉 수']}, {follower_data['계정 상태']}")
+                    account_status_counter += 1
         # print(f"가져온 팔로워 정보 수 : {len(followers_info)}")
         scroll_count += 1
 
@@ -174,6 +199,7 @@ def process_follower_element(driver, element):
         ActionChains(driver).move_to_element_with_offset(element, -50, 0).perform()
         time.sleep(0.5)
         ActionChains(driver).move_to_element(element).perform()
+        time.sleep(2)
         return fetch_user_info(driver)
     except StaleElementReferenceException:
         print('StaleElementReferenceException 발생')
@@ -181,9 +207,20 @@ def process_follower_element(driver, element):
 
 
 def fetch_user_info(driver):
-    canvas = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, 'canvas[height="66"][width="66"]'))
-        )
+    # 모든 canvas 요소 선택
+    canvas_elements = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.TAG_NAME, 'canvas'))
+    )
+
+    # 높이와 너비가 60대인 canvas 요소 찾기
+    canvas = next(
+        (canvas for canvas in canvas_elements
+            if 60 <= int(canvas.get_attribute('height')) <= 69 and 60 <= int(canvas.get_attribute('width')) <= 69),
+        None
+    )
+
+    if canvas is None:
+        raise Exception("적절한 크기의 canvas 요소를 찾을 수 없습니다.")
     
     image = canvas.find_element(By.XPATH, 'following-sibling::*[self::a or self::span]/img')
 
@@ -204,10 +241,14 @@ def fetch_user_info(driver):
             break
 
     # 공개/비공개 여부 확인
-    grand_grand_parent = canvas.find_element(By.XPATH, './ancestor::div[4]') # 고조할아버지
-    next_sibling_of_sibling = grand_grand_parent.find_element(By.XPATH, 'following-sibling::div[2]') # 고조할아버지의 아래아래 동생div
-    public_images = next_sibling_of_sibling.find_elements(By.CSS_SELECTOR, 'img[height="120"][width="120"]')
-    account_status = "공개" if public_images else "비공개"
+    # grand_grand_parent = canvas.find_element(By.XPATH, './ancestor::div[4]') # 고조할아버지
+    # next_sibling_of_sibling = grand_grand_parent.find_element(By.XPATH, 'following-sibling::div[2]') # 고조할아버지의 아래아래 동생div
+    # public_images = next_sibling_of_sibling.find_elements(By.CSS_SELECTOR, 'img[height="120"][width="120"]')
+    # account_status = "공개" if public_images else "비공개"
+
+    # '비공개 계정입니다' 텍스트를 포함하는 요소 찾기
+    private_account_elements = driver.find_elements(By.XPATH, "//*[contains(text(), '비공개 계정입니다')]")
+    account_status = "비공개" if private_account_elements else "공개"
 
     follower_info = {'팔로워 ID': follower_name}
     follower_info['계정 상태'] = account_status
@@ -215,8 +256,60 @@ def fetch_user_info(driver):
     follower_info['팔로잉 수'] = following_count
     follower_info['팔로워 링크'] = f"https://www.instagram.com/{follower_name}/"
 
-
-    print(follower_name, follower_count, following_count, account_status)
-
     return follower_info
 
+
+
+def random_browsing_actions(driver):
+    # 현재 탭의 핸들을 저장
+    main_window_handle = driver.current_window_handle
+
+    # 새 탭을 열고 랜덤 브라우징 수행
+    driver.execute_script("window.open('');")
+    driver.switch_to.window(driver.window_handles[1])
+
+    page_url = random.choice(["https://www.instagram.com/", 
+                              "https://www.instagram.com/reels", 
+                              "https://www.instagram.com/explore/"])
+    driver.get(page_url)
+
+    # 3~10초 사이의 랜덤 대기 시간 설정
+    wait_time = random.uniform(3, 5)
+    page_name = "릴스" if "reels" in page_url else "탐색 탭" if "explore" in page_url else "피드"
+    time.sleep(wait_time)
+
+    scroll_duration_time = random.randint(30, 60)
+    print(f'\n봇 인식 방지를 위해 {scroll_duration_time:.2f}초 동안 {page_name}을/를 방문하여 랜덤 행동을 수행합니다.')
+
+    end_time = time.time() + scroll_duration_time
+
+    if "reels" in page_url:
+        # 릴스 페이지의 경우 페이지 다운 키를 사용한 스크롤링
+        while time.time() < end_time:
+            ActionChains(driver).send_keys(Keys.PAGE_DOWN).perform()
+            time.sleep(random.uniform(3, 10))
+    else:
+        # 다른 페이지의 경우 일반 스크롤링
+        while time.time() < end_time:
+            scroll_by = random.randint(200, 700)
+            driver.execute_script(f"window.scrollBy(0, {scroll_by});")
+            time.sleep(random.uniform(3, 10))
+
+    print('\n랜덤 행동을 마쳤습니다. 데이터 추출을 다시 시작합니다.\n')       
+
+    # 새 탭을 닫고 원래 탭으로 돌아가기
+    driver.close()
+    driver.switch_to.window(main_window_handle)
+
+
+def check_new_followers_loaded(driver, follower_list_modal, processed_followers):
+    # 팔로워 리스트에서 새롭게 로드된 팔로워가 있는지 확인
+    canvas_elements = driver.find_elements(By.CSS_SELECTOR, 'canvas[height="54"][width="54"]')
+    for canvas in canvas_elements:
+        images = canvas.find_elements(By.XPATH, 'following-sibling::*[self::a or self::span]/img')
+        if images:
+            follower_name = images[0].get_attribute('alt').split('님의 프로필 사진')[0]
+            if follower_name not in processed_followers:
+                print(f'새 팔로워 발견됨! : {follower_name}')
+                return True
+    return False

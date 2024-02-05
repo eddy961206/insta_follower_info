@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-my_program_name = "린치핀 인스타 팔로워 추출 프로그램 v1.1"
+my_program_name = "린치핀 인스타 팔로워 추출 프로그램 v1.2"
 
 
 a = Analysis(
@@ -12,7 +12,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['_pycache_', 'venv', '.git', '.gitignore', '.cursorignore','test', '인스타_설정정보.ini'],
+    excludes=['_pycache_', 'venv', '.git', '.gitignore', '.cursorignore','test', '인스타_설정정보.ini', 'dist'],
     noarchive=False
 )
 
